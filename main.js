@@ -18,43 +18,138 @@ function triggerTab() {
 
 // 模拟人类延迟
 function getHumanDelay() {
-    // 基础延迟 80-150ms，较快速度
     const baseDelay = 80 + Math.random() * 70;
-    
-    // 8% 概率有较长停顿
     if (Math.random() < 0.08) {
         return baseDelay + 150 + Math.random() * 200;
     }
-    
     return baseDelay;
 }
 
-// 单词间的停顿
 function getWordDelay() {
-    return 200 + Math.random() * 150; // 200-350ms
+    return 200 + Math.random() * 150;
 }
 
-// 模拟阅读时间
 function getReadingDelay() {
-    return 100 + Math.random() * 100; // 100-200ms
+    return 100 + Math.random() * 100;
+}
+
+// 检查游戏是否完成
+function isGameCompleted() {
+    // 检查是否有提交分数的按钮出现
+    const spaceY3Container = document.querySelector('.space-y-3');
+    if (!spaceY3Container) return false;
+    
+    const buttons = spaceY3Container.querySelectorAll('button');
+    return buttons.length >= 2; // 有提交分数和重新开始按钮
+}
+
+// 提交分数
+async function submitScore() {
+    console.log('🎯 游戏完成，准备提交分数...');
+    
+    const spaceY3Container = document.querySelector('.space-y-3');
+    if (!spaceY3Container) {
+        console.log('❌ 未找到按钮容器');
+        return false;
+    }
+    
+    const buttons = spaceY3Container.querySelectorAll('button');
+    if (buttons.length < 2) {
+        console.log('❌ 按钮数量不足');
+        return false;
+    }
+    
+    // 点击第二个按钮（提交分数）
+    const submitButton = buttons[1];
+    console.log('📤 点击提交分数按钮...');
+    submitButton.click();
+    
+    // 等待5秒
+    await sleep(5000);
+    return true;
+}
+
+// 重新开始游戏
+async function restartGame() {
+    console.log('🔄 准备重新开始游戏...');
+    
+    const spaceY3Container = document.querySelector('.space-y-3');
+    if (!spaceY3Container) {
+        console.log('❌ 未找到按钮容器');
+        return false;
+    }
+    
+    const buttons = spaceY3Container.querySelectorAll('button');
+    if (buttons.length < 1) {
+        console.log('❌ 未找到重新开始按钮');
+        return false;
+    }
+    
+    // 点击第一个按钮（重新开始）
+    const restartButton = buttons[0];
+    console.log('🎮 点击重新开始按钮...');
+    restartButton.click();
+    
+    // 等待页面响应
+    await sleep(1000);
+    
+    // 按Tab键开始新游戏
+    console.log('⌨️ 按Tab键开始新游戏...');
+    triggerTab();
+    await sleep(600);
+    
+    return true;
 }
 
 async function autoType() {
-    // 先按 Tab 键获得焦点
+    let gameStartTime = Date.now();
+    const GAME_DURATION = 15000; // 15秒
+    
+    // 初始按Tab键获得焦点
     triggerTab();
     await sleep(600);
     
     while (true) {
+        // 检查游戏是否完成（15秒或出现完成界面）
+        const currentTime = Date.now();
+        const gameElapsed = currentTime - gameStartTime;
+        
+        if (gameElapsed >= GAME_DURATION || isGameCompleted()) {
+            console.log('⏰ 游戏时间到或检测到完成界面');
+            
+            // 等待完成界面完全加载
+            await sleep(2000);
+            
+            // 提交分数
+            const submitSuccess = await submitScore();
+            if (!submitSuccess) {
+                console.log('❌ 提交分数失败，等待重试...');
+                await sleep(2000);
+                continue;
+            }
+            
+            // 重新开始游戏
+            const restartSuccess = await restartGame();
+            if (!restartSuccess) {
+                console.log('❌ 重新开始失败，等待重试...');
+                await sleep(2000);
+                continue;
+            }
+            
+            // 重置游戏开始时间
+            gameStartTime = Date.now();
+            console.log('🎮 新一轮游戏开始！');
+            continue;
+        }
+        
         const input = document.querySelector('input[type="text"]');
         if (!input) {
             await sleep(1000);
             continue;
         }
         
-        // 确保输入框获得焦点
         input.focus();
         
-        // 查找当前需要输入的单词
         const wordElems = document.querySelectorAll('div[class*="text-"]');
         const activeWord = Array.from(wordElems).find(el =>
             el.innerText.trim().length > 0 &&
@@ -69,36 +164,28 @@ async function autoType() {
         const word = activeWord.innerText.trim();
         console.log(`📝 输入单词: ${word}`);
         
-        // 单词开始前的快速阅读
         await sleep(getReadingDelay());
         
-        // 逐字符输入
         let current = '';
         for (let i = 0; i < word.length; i++) {
             const char = word[i];
             current += char;
             triggerInput(input, current);
             
-            // 较快速度延迟
             const delay = getHumanDelay();
             await sleep(delay);
             
-            // 偶尔会有轻微犹豫
-            if (Math.random() < 0.02) { // 2% 概率
+            if (Math.random() < 0.02) {
                 await sleep(100 + Math.random() * 150);
             }
         }
         
-        // 添加空格，单词间停顿
         triggerInput(input, current + ' ');
         await sleep(getWordDelay());
         
-        // 检查是否是最后一个单词
         if (wordElems.length === 1) {
-            console.log('🎉 本轮完成，等待新单词...');
-            await sleep(1500 + Math.random() * 800); // 1.5-2.3秒等待
-            triggerTab();
-            await sleep(600);
+            console.log('📝 本轮单词完成，继续下一个...');
+            await sleep(150);
         }
         
         await sleep(150);
@@ -106,5 +193,5 @@ async function autoType() {
 }
 
 // 开始自动打字
-console.log('🎮 开始自动打字游戏...');
+console.log('🎮 开始自动打字游戏循环...');
 autoType();
