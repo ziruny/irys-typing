@@ -8,3 +8,4 @@
 
 ## 油猴脚本 spritetype_gm.js
 <img width="3014" height="370" alt="image" src="https://github.com/user-attachments/assets/70498dc7-c504-440c-8465-7221edba6000" />
+<img width="1884" height="1354" alt="image" src="https://github.com/user-attachments/assets/8630a2a1-b82e-4928-b406-f092675a350b" />
